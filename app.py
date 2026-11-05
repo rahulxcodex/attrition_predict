@@ -9,10 +9,10 @@ import streamlit as st
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # -----------------------------------------------------------------------------
-# Page Configuration & Anti-AI Editorial Aesthetics
+# Page Configuration & Anti-AI Editorial Styling
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Attrition Risk Evaluation — IBM HR Analytics",
+    page_title="Attrition Risk Prediction — Key Predictor Model",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -22,7 +22,6 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap');
 
-    /* Global Typography & Palette */
     html, body, [class*="css"] {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         color: #141413;
@@ -57,20 +56,20 @@ st.markdown(
         margin-bottom: 2rem;
     }
 
-    /* Section Separators */
+    /* Section Divider */
     .section-label {
         font-family: 'Space Mono', monospace;
-        font-size: 0.68rem;
+        font-size: 0.7rem;
         letter-spacing: 0.1em;
         text-transform: uppercase;
         color: #44403C;
         border-bottom: 1px solid #1C1917;
         padding-bottom: 0.3rem;
-        margin-top: 1.5rem;
-        margin-bottom: 1rem;
+        margin-top: 1.2rem;
+        margin-bottom: 1.2rem;
     }
 
-    /* Form Inputs */
+    /* Form Labels */
     label p {
         font-family: 'Space Mono', monospace !important;
         font-size: 0.75rem !important;
@@ -80,7 +79,7 @@ st.markdown(
         font-weight: 700 !important;
     }
 
-    /* Primary Action Button */
+    /* Button */
     div.stButton > button:first-child {
         font-family: 'Space Mono', monospace !important;
         font-size: 0.82rem !important;
@@ -101,13 +100,12 @@ st.markdown(
         transform: translateY(1px) !important;
     }
 
-    /* Result Docket */
+    /* Output Docket */
     .docket-container {
         border: 1px solid #1C1917;
         background-color: #FFFFFF;
         padding: 1.5rem 1.8rem;
         margin-top: 2rem;
-        border-radius: 0px;
     }
     .docket-header {
         font-family: 'Space Mono', monospace;
@@ -119,13 +117,13 @@ st.markdown(
         padding-bottom: 0.4rem;
         margin-bottom: 1rem;
     }
-    .verdict-box-positive {
+    .verdict-positive {
         border-left: 4px solid #991B1B;
         background-color: #FEF2F2;
         padding: 1rem 1.2rem;
         margin-bottom: 1rem;
     }
-    .verdict-box-negative {
+    .verdict-negative {
         border-left: 4px solid #166534;
         background-color: #F0FDF4;
         padding: 1rem 1.2rem;
@@ -163,195 +161,186 @@ FEATURE_PATH = BASE_DIR / "feature_columns.json"
 
 
 @st.cache_resource
-def load_model_and_features():
+def load_assets():
     model = joblib.load(MODEL_PATH)
     with open(FEATURE_PATH, "r", encoding="utf-8") as f:
         feature_cols = json.load(f)
     return model, feature_cols
 
 
-model, feature_columns = load_model_and_features()
+model, feature_columns = load_assets()
 
 # -----------------------------------------------------------------------------
-# Editorial Masthead
+# Dataset Empirical Baseline (Medians / Modes for unasked non-top features)
+# -----------------------------------------------------------------------------
+BASELINE_VECTOR = {col: 0 for col in feature_columns}
+BASELINE_VECTOR.update({
+    "Age": 36,
+    "DailyRate": 802,
+    "DistanceFromHome": 7,
+    "Education": 3,
+    "EnvironmentSatisfaction": 3,
+    "Gender": 0,
+    "HourlyRate": 66,
+    "JobInvolvement": 3,
+    "JobLevel": 2,
+    "JobSatisfaction": 3,
+    "MonthlyIncome": 4919,
+    "MonthlyRate": 14236,
+    "NumCompaniesWorked": 2,
+    "OverTime": 0,
+    "PercentSalaryHike": 14,
+    "PerformanceRating": 3,
+    "RelationshipSatisfaction": 3,
+    "StockOptionLevel": 1,
+    "TotalWorkingYears": 10,
+    "TrainingTimesLastYear": 3,
+    "WorkLifeBalance": 3,
+    "YearsAtCompany": 5,
+    "YearsInCurrentRole": 3,
+    "YearsSinceLastPromotion": 1,
+    "YearsWithCurrManager": 3,
+    "BusinessTravel_Travel_Rarely": 1,
+    "Department_Research & Development": 1,
+    "EducationField_Life Sciences": 1,
+    "JobRole_Research Scientist": 1,
+    "MaritalStatus_Married": 1,
+})
+
+# -----------------------------------------------------------------------------
+# Masthead
 # -----------------------------------------------------------------------------
 st.markdown(
     """
     <div class="masthead-meta">
-        Docket: HR-ATTRITION-EVAL &nbsp;|&nbsp; Model: Random Forest Ensemble (N=60, D=16) &nbsp;|&nbsp; Vector: 44 Dimension Specification
+        Docket: HR-ATTRITION-KEY-PREDICTORS &nbsp;|&nbsp; Model: Random Forest Ensemble (N=60, D=16) &nbsp;|&nbsp; Top Gini Features
     </div>
-    <div class="masthead-title">Employee Attrition Analysis</div>
-    <div class="masthead-subtitle">Statistical classification derived from trained IBM HR telemetry parameters.</div>
+    <div class="masthead-title">Attrition Prediction via Key Variables</div>
+    <div class="masthead-subtitle">Model inference constrained to the top primary importance features from random forest training.</div>
     """,
     unsafe_allow_html=True,
 )
 
 # -----------------------------------------------------------------------------
-# Input Form
+# Input Form: Top 10 Important Variables
 # -----------------------------------------------------------------------------
-with st.form("attrition_form"):
-    st.markdown('<div class="section-label">01 // Demographic & Personal Identity</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
+with st.form("key_features_form"):
+    st.markdown('<div class="section-label">Primary Predictor Variables (Top 10 Feature Importances)</div>', unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2)
+
     with c1:
-        age = st.number_input("Age", min_value=18, max_value=65, value=32, step=1)
-        gender = st.selectbox("Gender", ["Male", "Female"])
-    with c2:
-        marital_status = st.selectbox("MaritalStatus", ["Single", "Married", "Divorced"])
-        distance_from_home = st.number_input("DistanceFromHome", min_value=1, max_value=50, value=7, step=1)
-    with c3:
-        education = st.selectbox("Education (Level 1–5)", [1, 2, 3, 4, 5], index=2)
-        education_field = st.selectbox(
-            "EducationField",
-            ["Life Sciences", "Medical", "Marketing", "Technical Degree", "Human Resources", "Other"],
+        monthly_income = st.number_input(
+            "MonthlyIncome (USD) — Rank 1 [Importance: 8.17%]",
+            min_value=1000,
+            max_value=30000,
+            value=4919,
+            step=100,
         )
-    with c4:
-        num_companies_worked = st.number_input("NumCompaniesWorked", min_value=0, max_value=15, value=2, step=1)
-        total_working_years = st.number_input("TotalWorkingYears", min_value=0, max_value=40, value=9, step=1)
-
-    st.markdown('<div class="section-label">02 // Workplace & Role Specification</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        department = st.selectbox("Department", ["Research & Development", "Sales", "Human Resources"])
-        job_role = st.selectbox(
-            "JobRole",
-            [
-                "Research Scientist",
-                "Laboratory Technician",
-                "Sales Executive",
-                "Manufacturing Director",
-                "Healthcare Representative",
-                "Manager",
-                "Sales Representative",
-                "Research Director",
-                "Human Resources",
-            ],
+        overtime = st.selectbox(
+            "OverTime — Rank 2 [Importance: 7.73%]",
+            ["No", "Yes"],
+            index=0,
         )
-    with c2:
-        job_level = st.selectbox("JobLevel (Level 1–5)", [1, 2, 3, 4, 5], index=1)
-        business_travel = st.selectbox("BusinessTravel", ["Travel_Rarely", "Travel_Frequently", "Non-Travel"])
-    with c3:
-        overtime = st.selectbox("OverTime", ["No", "Yes"])
-        stock_option_level = st.selectbox("StockOptionLevel (0–3)", [0, 1, 2, 3], index=1)
-    with c4:
-        training_times_last_year = st.number_input("TrainingTimesLastYear", min_value=0, max_value=10, value=3, step=1)
-        percent_salary_hike = st.number_input("PercentSalaryHike (%)", min_value=10, max_value=30, value=14, step=1)
+        age = st.number_input(
+            "Age (Years) — Rank 3 [Importance: 5.69%]",
+            min_value=18,
+            max_value=65,
+            value=36,
+            step=1,
+        )
+        daily_rate = st.number_input(
+            "DailyRate (USD) — Rank 4 [Importance: 5.25%]",
+            min_value=100,
+            max_value=2000,
+            value=802,
+            step=10,
+        )
+        total_working_years = st.number_input(
+            "TotalWorkingYears — Rank 5 [Importance: 4.87%]",
+            min_value=0,
+            max_value=40,
+            value=10,
+            step=1,
+        )
 
-    st.markdown('<div class="section-label">03 // Financial Compensation (USD)</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        monthly_income = st.number_input("MonthlyIncome", min_value=1000, max_value=30000, value=5200, step=100)
     with c2:
-        daily_rate = st.number_input("DailyRate", min_value=100, max_value=2000, value=800, step=10)
-    with c3:
-        hourly_rate = st.number_input("HourlyRate", min_value=20, max_value=150, value=65, step=1)
-    with c4:
-        monthly_rate = st.number_input("MonthlyRate", min_value=1000, max_value=40000, value=14200, step=100)
-
-    st.markdown('<div class="section-label">04 // Organizational Tenure (Years)</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        years_at_company = st.number_input("YearsAtCompany", min_value=0, max_value=40, value=6, step=1)
-    with c2:
-        years_in_current_role = st.number_input("YearsInCurrentRole", min_value=0, max_value=25, value=4, step=1)
-    with c3:
-        years_since_last_promotion = st.number_input("YearsSinceLastPromotion", min_value=0, max_value=20, value=1, step=1)
-    with c4:
-        years_with_curr_manager = st.number_input("YearsWithCurrManager", min_value=0, max_value=25, value=4, step=1)
-
-    st.markdown('<div class="section-label">05 // Satisfaction & Evaluation Indexes (Scale 1–4)</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        environment_satisfaction = st.selectbox("EnvironmentSatisfaction", [1, 2, 3, 4], index=2)
-        job_satisfaction = st.selectbox("JobSatisfaction", [1, 2, 3, 4], index=2)
-    with c2:
-        job_involvement = st.selectbox("JobInvolvement", [1, 2, 3, 4], index=2)
-        relationship_satisfaction = st.selectbox("RelationshipSatisfaction", [1, 2, 3, 4], index=2)
-    with c3:
-        work_life_balance = st.selectbox("WorkLifeBalance", [1, 2, 3, 4], index=2)
-    with c4:
-        performance_rating = st.selectbox("PerformanceRating", [3, 4], index=0)
+        monthly_rate = st.number_input(
+            "MonthlyRate (USD) — Rank 6 [Importance: 4.60%]",
+            min_value=1000,
+            max_value=40000,
+            value=14236,
+            step=100,
+        )
+        distance_from_home = st.number_input(
+            "DistanceFromHome (km) — Rank 7 [Importance: 4.51%]",
+            min_value=1,
+            max_value=50,
+            value=7,
+            step=1,
+        )
+        hourly_rate = st.number_input(
+            "HourlyRate (USD) — Rank 8 [Importance: 4.25%]",
+            min_value=20,
+            max_value=150,
+            value=66,
+            step=1,
+        )
+        years_at_company = st.number_input(
+            "YearsAtCompany — Rank 9 [Importance: 4.11%]",
+            min_value=0,
+            max_value=40,
+            value=5,
+            step=1,
+        )
+        num_companies_worked = st.number_input(
+            "NumCompaniesWorked — Rank 10 [Importance: 3.45%]",
+            min_value=0,
+            max_value=15,
+            value=2,
+            step=1,
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    submit = st.form_submit_button("Execute Inference Vector →")
+    submit = st.form_submit_button("Run Prediction Inference →")
 
 # -----------------------------------------------------------------------------
 # Inference Execution & Outcome Docket
 # -----------------------------------------------------------------------------
 if submit:
-    # Initialize zero-vector matching feature_columns.json
-    row = {col: 0 for col in feature_columns}
+    # Populate feature vector starting from empirical dataset baseline
+    feature_row = dict(BASELINE_VECTOR)
 
-    # Numeric and ordinal assignments
-    row["Age"] = age
-    row["DailyRate"] = daily_rate
-    row["DistanceFromHome"] = distance_from_home
-    row["Education"] = education
-    row["EnvironmentSatisfaction"] = environment_satisfaction
-    row["HourlyRate"] = hourly_rate
-    row["JobInvolvement"] = job_involvement
-    row["JobLevel"] = job_level
-    row["JobSatisfaction"] = job_satisfaction
-    row["MonthlyIncome"] = monthly_income
-    row["MonthlyRate"] = monthly_rate
-    row["NumCompaniesWorked"] = num_companies_worked
-    row["PercentSalaryHike"] = percent_salary_hike
-    row["PerformanceRating"] = performance_rating
-    row["RelationshipSatisfaction"] = relationship_satisfaction
-    row["StockOptionLevel"] = stock_option_level
-    row["TotalWorkingYears"] = total_working_years
-    row["TrainingTimesLastYear"] = training_times_last_year
-    row["WorkLifeBalance"] = work_life_balance
-    row["YearsAtCompany"] = years_at_company
-    row["YearsInCurrentRole"] = years_in_current_role
-    row["YearsSinceLastPromotion"] = years_since_last_promotion
-    row["YearsWithCurrManager"] = years_with_curr_manager
+    # Inject the 10 important variables from user input
+    feature_row["MonthlyIncome"] = monthly_income
+    feature_row["OverTime"] = 1 if overtime == "Yes" else 0
+    feature_row["Age"] = age
+    feature_row["DailyRate"] = daily_rate
+    feature_row["TotalWorkingYears"] = total_working_years
+    feature_row["MonthlyRate"] = monthly_rate
+    feature_row["DistanceFromHome"] = distance_from_home
+    feature_row["HourlyRate"] = hourly_rate
+    feature_row["YearsAtCompany"] = years_at_company
+    feature_row["NumCompaniesWorked"] = num_companies_worked
 
-    # Binary mappings
-    row["Gender"] = 1 if gender == "Female" else 0
-    row["OverTime"] = 1 if overtime == "Yes" else 0
+    # Construct exact 44-column DataFrame required by rf_model.pkl
+    input_df = pd.DataFrame([feature_row])[feature_columns]
 
-    # Categorical dummy encodings (drop_first=True baseline parity)
-    if business_travel == "Travel_Frequently":
-        row["BusinessTravel_Travel_Frequently"] = 1
-    elif business_travel == "Travel_Rarely":
-        row["BusinessTravel_Travel_Rarely"] = 1
-
-    if department == "Research & Development":
-        row["Department_Research & Development"] = 1
-    elif department == "Sales":
-        row["Department_Sales"] = 1
-
-    ef_col = f"EducationField_{education_field}"
-    if ef_col in row:
-        row[ef_col] = 1
-
-    jr_col = f"JobRole_{job_role}"
-    if jr_col in row:
-        row[jr_col] = 1
-
-    if marital_status == "Married":
-        row["MaritalStatus_Married"] = 1
-    elif marital_status == "Single":
-        row["MaritalStatus_Single"] = 1
-
-    # Exact feature frame verification
-    input_df = pd.DataFrame([row])[feature_columns]
-
-    # Model inference
+    # Predict
     prediction = int(model.predict(input_df)[0])
     probabilities = model.predict_proba(input_df)[0]
     p_retention = float(probabilities[0] * 100)
     p_attrition = float(probabilities[1] * 100)
 
-    # Output Docket
+    # Result presentation
     if prediction == 1:
-        verdict_class = "verdict-box-positive"
-        verdict_text = "CLASSIFICATION: ATTRITION (CLASS 1)"
-        verdict_desc = "The model classifies this feature profile under the attrition category based on the evaluated 44-parameter vector."
+        verdict_class = "verdict-positive"
+        verdict_text = "CLASSIFICATION: ATTRITION PREDICTED (CLASS 1)"
+        verdict_desc = "The model classifies this employee profile under the attrition category based on the evaluated key predictor variables."
     else:
-        verdict_class = "verdict-box-negative"
-        verdict_text = "CLASSIFICATION: RETENTION (CLASS 0)"
-        verdict_desc = "The model classifies this feature profile under the retention category based on the evaluated 44-parameter vector."
+        verdict_class = "verdict-negative"
+        verdict_text = "CLASSIFICATION: RETENTION PREDICTED (CLASS 0)"
+        verdict_desc = "The model classifies this employee profile under the retention category based on the evaluated key predictor variables."
 
     st.markdown(
         f"""
@@ -364,7 +353,7 @@ if submit:
             <div class="metric-data">
                 <strong>Probability of Attrition (Class 1):</strong> {p_attrition:.2f}%<br>
                 <strong>Probability of Retention (Class 0):</strong> {p_retention:.2f}%<br>
-                <strong>Decision Threshold:</strong> 0.5000 &nbsp;|&nbsp; <strong>Vector Dimension:</strong> 44 features
+                <strong>Decision Boundary:</strong> 0.5000 &nbsp;|&nbsp; <strong>Active Predictors:</strong> Top 10 Primary Gini Features
             </div>
         </div>
         """,
